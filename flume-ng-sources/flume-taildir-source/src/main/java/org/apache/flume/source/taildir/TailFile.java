@@ -25,9 +25,12 @@ import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import org.apache.commons.lang.StringUtils;
 import org.apache.flume.Event;
 import org.apache.flume.event.EventBuilder;
@@ -44,6 +47,7 @@ public class TailFile {
 
   private static final String LINE_SEP = "\n";
   private static final String LINE_SEP_WIN = "\r\n";
+  private static final Gson gson = new GsonBuilder().create();
 
   private RandomAccessFile raf;
   private final String path;
@@ -100,6 +104,22 @@ public class TailFile {
     return events;
   }
 
+
+  private Map<String, String> wrapHeaders() {
+    Map<String, String> headers = new HashMap<String, String>();
+
+    headers.put("ip", YXhack.getHostIp());
+    headers.put("path", this.getPath());
+
+    return headers;
+  }
+
+  private String wrapEventBody(Map<String, String> headers, String body) {
+    headers.put("message", body);
+
+    return gson.toJson(headers);
+  }
+
   private Event readEvent(boolean backoffWithoutNL, boolean addByteOffset) throws IOException {
     Long posTmp = raf.getFilePointer();
     String line = readLine();
@@ -117,7 +137,7 @@ public class TailFile {
     if(line.endsWith(LINE_SEP_WIN)) {
       lineSep = LINE_SEP_WIN;
     }
-    Event event = EventBuilder.withBody(StringUtils.removeEnd(line, lineSep), Charsets.UTF_8);
+    Event event = EventBuilder.withBody(StringUtils.removeEnd(wrapEventBody(wrapHeaders(), line), lineSep), Charsets.UTF_8);
     if (addByteOffset == true) {
       event.getHeaders().put(BYTE_OFFSET_HEADER_KEY, posTmp.toString());
     }

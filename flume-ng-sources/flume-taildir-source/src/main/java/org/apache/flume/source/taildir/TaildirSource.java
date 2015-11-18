@@ -236,11 +236,16 @@ public class TaildirSource extends AbstractSource implements
     return maxBackOffSleepInterval;
   }
 
+
+  //  core process on each matched and updated/new file
+  //  处理 新创建或者有新追加的文件,直到没有任何未处理的更新
+  //
   private void tailFileProcess(TailFile tf, boolean backoffWithoutNL)
       throws IOException, InterruptedException {
     while (true) {
       reader.setCurrentFile(tf);
       List<Event> events = reader.readEvents(batchSize, backoffWithoutNL);
+      //   啥都没读到就停止继续处理这个文件
       if (events.isEmpty()) {
         break;
       }
@@ -248,6 +253,7 @@ public class TaildirSource extends AbstractSource implements
       sourceCounter.incrementAppendBatchReceivedCount();
       try {
         getChannelProcessor().processEventBatch(events);
+        //    记录更新的 pos 和 时间
         reader.commit();
       } catch (ChannelException ex) {
         logger.warn("The channel is full or unexpected failure. " +

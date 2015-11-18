@@ -246,6 +246,7 @@ public class ReliableTaildirEventReader implements ReliableEventReader {
       for (File f : getMatchFiles(parentDir, fileNamePattern)) {
         long inode = getInode(f);
         TailFile tf = tailFiles.get(inode);
+        //   new file is cretead
         if (tf == null || !tf.getPath().equals(f.getAbsolutePath())) {
           long startPos = skipToEnd ? f.length() : 0;
           tf = openFile(f, headers, inode, startPos);
